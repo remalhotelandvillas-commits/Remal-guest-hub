@@ -5,7 +5,6 @@ const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 let audioContext = null;
 let audioEnabled = false;
 let previousPendingCount = 0;
-let currentUserSession = null;
 let roomServiceMenu = [];
 let cartState = {};
 let starredItems = JSON.parse(localStorage.getItem('remal_starred') || '{}');
@@ -18,6 +17,96 @@ let cachedRequests = [];
 let cachedFeedback = [];
 let activeAnnouncement = null;
 let currentFeedbackRating = 5;
+
+const i18n = {
+  en: {
+    welcome: "Welcome to Remal Hotel & Villas", lblOffers: "Offers", lblFacilities: "Facilities", lblService: "Service", lblFaq: "FAQ",
+    facHeader: "Hotel Facilities & Amenities", facSub: "Explore our premium venues and spaces", reqHeader: "Request Guest Service",
+    lblRoom: "Room Number", placeholderRoom: "e.g., 104 or Villa 02", lblServiceType: "Service Type",
+    lblDetails: "Additional Notes / Request Details", placeholderDetails: "Specify your request here...", btnSubmit: "Send Request to Reception",
+    whatsappBtn: "WhatsApp Reception", successMsg: "Request submitted successfully!", chatWhatsapp: "💬 Chat on WhatsApp",
+    trackHeader: "📡 Track Active Requests", liveStatus: "Live Status (Optimistic)", trackEmpty: "Enter your room number above to track active requests in real time.",
+    trackNoReq: "No active requests found for room ", loadingOffers: "Loading live offers...", noOffers: "No offers available in this category.",
+    swipePhotos: "👈 Swipe or click arrows for photos 👉", bookInquiry: "Book / Inquiry →",
+    faqHeaderTitle: "💡 Intelligent Assistant & FAQ", faqHeaderSub: "Instant answers to common hotel questions",
+    folioTitle: "📄 My Room Folio & Charges", btnPrtFolio: "🖨️ Print Folio", folioPlaceholder: "Enter your room number above to view your live billing summary.",
+    feedbackTitle: "⭐ Stay Feedback & Experience Rating", feedbackSub: "Share your thoughts to help us improve our services", ratingText: "Rating:", btnSubmitReview: "Submit Review",
+    favTitle: "⭐ My Favorites & Recent Orders", favBadge: "Quick Access", favEmpty: "No starred favorite dishes yet.",
+    menuHeader: "🍽️ Select Menu Items", menuBadge: "In-Room Dining", totalAmt: "Total Amount:", delivTime: "Preferred Delivery Time",
+    bookingTitle: "Table / Spa Reservation Details", lblVenue: "Venue / Service", lblGuests: "Guests Count", lblBDate: "Reservation Date", lblBTime: "Preferred Time",
+    wakeupTitle: "Wake-Up Call Scheduler", wakeupLabel: "Select Alarm Time",
+    lateTitle: "Late Check-Out Request", lateLabel: "Requested Departure Time",
+    services: [
+      { val: "Table / Spa Reservation", text: "Table / Spa Reservation" },
+      { val: "Wake-up Call Request", text: "Wake-up Call / Alarm Service" },
+      { val: "Late Check-out Request", text: "Late Check-out / Extension" },
+      { val: "Housekeeping", text: "Housekeeping / Room Cleaning" },
+      { val: "Front Desk Inquiry", text: "Front Desk Inquiry" }, 
+      { val: "Luggage Assistance", text: "Luggage Assistance" },
+      { val: "Room Service / Dining", text: "Room Service / Order Food" }, 
+      { val: "Maintenance / Technical Support", text: "Maintenance / Technical Support" },
+      { val: "Laundry", text: "Laundry" }
+    ]
+  },
+  ar: {
+    welcome: "مرحباً بكم في فندق وڤلل رمال", lblOffers: "العروض", lblFacilities: "المرافق والخدمات", lblService: "طلب خدمة", lblFaq: "الأسئلة الشائعة",
+    facHeader: "مرافق الفندق والخدمات", facSub: "استكشف أرقى مرافقنا وخدماتنا المميزة", reqHeader: "طلب خدمة النزلاء",
+    lblRoom: "رقم الغرفة", placeholderRoom: "مثال: 104 أو فيلا 02", lblServiceType: "نوع الخدمة",
+    lblDetails: "ملاحظات إضافية / تفاصيل الطلب", placeholderDetails: "اكتب تفاصيل طلبك هنا...", btnSubmit: "إرسال الطلب إلى الاستقبال",
+    whatsappBtn: "واتساب الاستقبال", successMsg: "تم إرسال طلبك بنجاح!", chatWhatsapp: "💬 التحدث عبر واتساب",
+    trackHeader: "📡 متابعة الطلبات الحالية", liveStatus: "حالة مباشرة", trackEmpty: "أدخل رقم الغرفة أعلاه لمتابعة طلباتك في الوقت الفعلي.",
+    trackNoReq: "لا توجد طلبات مسجلة للغرفة ", loadingOffers: "جاري تحميل العروض المباشرة...", noOffers: "لا توجد عروض متاحة في هذه الفئة.",
+    swipePhotos: "👈 اسحب أو اضغط الأسهم للصور 👉", bookInquiry: "حجز / استفسار ←",
+    faqHeaderTitle: "💡 المساعد الذكي والأسئلة الشائعة", faqHeaderSub: "إجابات فورية على الأسئلة الشائعة في الفندق",
+    folioTitle: "📄 كشف الحساب والمصاريف", btnPrtFolio: "🖨️ طباعة الكشف", folioPlaceholder: "أدخل رقم غرفتك أعلاه لعرض ملخص فواتيرك.",
+    feedbackTitle: "⭐ تقييم الإقامة والخدمة", feedbackSub: "شارعنا رأيك لمساعدتنا على تحسين خدماتنا", ratingText: "التقييم:", btnSubmitReview: "إرسال التقييم",
+    favTitle: "⭐ المفضلة والطلبات الأخيرة", favBadge: "وصول سريع", favEmpty: "لا توجد أطباق مفضلة حتى الآن.",
+    menuHeader: "🍽️ اختر أصناف القائمة", menuBadge: "خدمة الغرف", totalAmt: "المبلغ الإجمالي:", delivTime: "وقت التوصيل المفضل",
+    bookingTitle: "تفاصيل حجز الطاولة أو السبا", lblVenue: "المكان / الخدمة", lblGuests: "عدد الضيوف", lblBDate: "تاريخ الحجز", lblBTime: "الوقت المفضل",
+    wakeupTitle: "جدولة خدمة الإيقاظ", wakeupLabel: "اختر وقت التنبيه",
+    lateTitle: "طلب مغادرة متأخرة", lateLabel: "وقت المغادرة المطلوب",
+    services: [
+      { val: "Table / Spa Reservation", text: "حجز طاولة مطعم أو موعد سبا" },
+      { val: "Wake-up Call Request", text: "خدمة الإيقاظ / التنبيه الصباحي" },
+      { val: "Late Check-out Request", text: "طلب مغادرة متأخرة / تمديد الإقامة" },
+      { val: "Housekeeping", text: "خدمة الغرف / تنظيف الغرفة (Housekeeping)" },
+      { val: "Front Desk Inquiry", text: "استفسار الاستقبال" }, 
+      { val: "Luggage Assistance", text: "مساعدة في الأمتعة" },
+      { val: "Room Service / Dining", text: "خدمة الغرف / طلب طعام" }, 
+      { val: "Maintenance / Technical Support", text: "الصيانة / الدعم الفني" },
+      { val: "Laundry", text: "خدمة الغسيل (Laundry)" }
+    ]
+  },
+  hi: {
+    welcome: "रेमल होटल एंड विला में आपका स्वागत है", lblOffers: "विशेष ऑफ़र", lblFacilities: "सुविधाएं", lblService: "सेवा अनुरोध", lblFaq: "सामान्य प्रश्न",
+    facHeader: "होटल सुविधाएं", facSub: "हमारे प्रीमियम स्थानों और सेवाओं का अन्वेषण करें", reqHeader: "अतिथि सेवा का अनुरोध करें",
+    lblRoom: "कमरा संख्या", placeholderRoom: "उदा., 104 या विला 02", lblServiceType: "सेवा का प्रकार",
+    lblDetails: "अतिरिक्त विवरण / अनुरोध", placeholderDetails: "अपना अनुरोध यहां दर्ज करें...", btnSubmit: "रिसेप्शन को अनुरोध भेजें",
+    whatsappBtn: "व्हाट्सएप रिसेप्शन", successMsg: "आपका अनुरोध सफलतापूर्वक भेजा गया!", chatWhatsapp: "💬 व्हाट्सएप पर चैट करें",
+    trackHeader: "📡 सक्रिय अनुरोध ट्रैकिंग", liveStatus: "लाइव स्थिति", trackEmpty: "वास्तविक समय में अनुरोध ट्रैक करने के लिए ऊपर कमरा नंबर दर्ज करें।",
+    trackNoReq: "कमरा नंबर के लिए कोई अनुरोध नहीं मिला ", loadingOffers: "ऑफ़र लोड हो रहे हैं...", noOffers: "इस श्रेणी में कोई ऑफ़र उपलब्ध नहीं है।",
+    swipePhotos: "👈 स्वाइप करें या फ़ोटो के लिए तीर दबाएं 👉", bookInquiry: "बुक / पूछताछ →",
+    faqHeaderTitle: "💡 बुद्धिमान सहायक और सामान्य प्रश्न", faqHeaderSub: "आम होटल के सवालों के त्वरित जवाब",
+    folioTitle: "📄 मेरा कमरा फोलियो और शुल्क", btnPrtFolio: "🖨️ फोलियो प्रिंट करें", folioPlaceholder: "अपना लाइव बिलिंग सारांश देखने के लिए ऊपर अपना कमरा नंबर दर्ज करें।",
+    feedbackTitle: "⭐ ठहरने की प्रतिक्रिया और रेटिंग", feedbackSub: "अपनी सेवाएं सुधारने में हमारी मदद करें", ratingText: "रेटिंग:", btnSubmitReview: "समीक्षा जमा करें",
+    favTitle: "⭐ मेरे पसंदीदा और हाल के ऑर्डर", favBadge: "त्वरित पहुंच", favEmpty: "अभी तक कोई पसंदीदा व्यंजन नहीं है।",
+    menuHeader: "🍽️ मेनू आइटम चुनें", menuBadge: "इन-रूम डाइनिंग", totalAmt: "कुल राशि:", delivTime: "पसंदीदा डिलीवरी का समय",
+    bookingTitle: "टेबल / स्पा बुकिंग विवरण", lblVenue: "स्थान / सेवा", lblGuests: "मेहमानों की संख्या", lblBDate: "बुकिंग की तारीख", lblBTime: "पसंदीदा समय",
+    wakeupTitle: "वेक-अप कॉल शेड्यूलर", wakeupLabel: "अलार्म का समय चुनें",
+    lateTitle: "देर से चेक-आउट अनुरोध", lateLabel: "अनुरोधित प्रस्थान समय",
+    services: [
+      { val: "Table / Spa Reservation", text: "टेबल या स्पा बुकिंग" },
+      { val: "Wake-up Call Request", text: "वेक-अप कॉल / सुबह की अलार्म सेवा" },
+      { val: "Late Check-out Request", text: "देर से चेक-आउट / समय बढ़ाना" },
+      { val: "Housekeeping", text: "हाउसकीपिंग / कमरे की सफाई" },
+      { val: "Front Desk Inquiry", text: "फ्रंट डेस्क पूछताछ" }, 
+      { val: "Luggage Assistance", text: "सामान सहायता" },
+      { val: "Room Service / Dining", text: "रूम सर्विस / खाना ऑर्डर करें" }, 
+      { val: "Maintenance / Technical Support", text: "रखरखाव / तकनीकी सहायता" },
+      { val: "Laundry", text: "लॉन्ड्ररी (कपड़े धोने की सेवा)" }
+    ]
+  }
+};
 
 const FAQ_DATA = [
   {
@@ -89,7 +178,6 @@ function validateRoomNumber(roomStr) {
 async function init() {
   const urlParams = new URLSearchParams(window.location.search);
   const room = urlParams.get('room');
-  const adminParam = urlParams.get('admin');
 
   if (room && validateRoomNumber(room)) {
     const roomInd = document.getElementById('roomIndicator');
@@ -98,16 +186,9 @@ async function init() {
     if (reqRoom) reqRoom.value = room;
   }
 
-  if (adminParam === 'true') {
-    const toggleBtn = document.getElementById('viewToggleBtn');
-    if (toggleBtn) toggleBtn.classList.remove('hidden');
-    const { data: { session } } = await supabaseClient.auth.getSession();
-    currentUserSession = session;
-  } else {
-    const toggleBtn = document.getElementById('viewToggleBtn');
-    if (toggleBtn) toggleBtn.classList.add('hidden');
-    currentUserSession = null;
-  }
+  // Accès direct au Staff Panel sans condition de connexion
+  const toggleBtn = document.getElementById('viewToggleBtn');
+  if (toggleBtn) toggleBtn.classList.remove('hidden');
 
   const todayStr = new Date().toISOString().split('T')[0];
   const dateInput = document.getElementById('booking_date');
@@ -167,42 +248,13 @@ function updateRequestsUIState() {
   renderRoomFolioWidget();
 }
 
+// Ouvre directement le panneau d'administration sans mot de passe
 function handleAdminAccess() {
-  if (currentUserSession) toggleAdminView();
-  else {
-    const authModal = document.getElementById('authModal');
-    if (authModal) authModal.classList.remove('hidden');
-  }
+  toggleAdminView();
 }
 
-function closeAuthModal() { 
-  const authModal = document.getElementById('authModal');
-  if (authModal) authModal.classList.add('hidden'); 
-}
-
-async function loginAdmin(event) {
-  event.preventDefault();
-  const email = document.getElementById('loginEmail').value;
-  const password = document.getElementById('loginPassword').value;
-  const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
-
-  if (error) {
-    const errEl = document.getElementById('authErrorMsg');
-    if (errEl) {
-      errEl.innerText = "❌ Invalid email or password.";
-      errEl.classList.remove('hidden');
-    }
-  } else {
-    currentUserSession = data.session;
-    closeAuthModal();
-    toggleAdminView();
-  }
-}
-
-async function logoutAdmin() {
-  await supabaseClient.auth.signOut();
-  currentUserSession = null;
-  window.location.href = window.location.pathname;
+function logoutAdmin() {
+  window.location.reload();
 }
 
 function toggleAdminView() {
