@@ -29,7 +29,7 @@
           <button onclick="setLang('ar')" id="btn-ar" class="px-3 py-1.5 rounded-full text-stone-600 hover:text-stone-900">العربية</button>
           <button onclick="setLang('hi')" id="btn-hi" class="px-3 py-1.5 rounded-full text-stone-600 hover:text-stone-900">हिन्दी</button>
         </div>
-        <button onclick="handleAdminAccess()" id="viewToggleBtn" class="hidden bg-stone-900 text-white px-4 py-2 rounded-full text-xs font-semibold shadow relative hover:bg-stone-800 transition">
+        <button onclick="handleAdminAccess()" id="viewToggleBtn" class="bg-stone-900 text-white px-4 py-2 rounded-full text-xs font-semibold shadow relative hover:bg-stone-800 transition">
           ⚙️ Staff Panel
         </button>
       </div>
@@ -256,28 +256,6 @@
     <a href="https://wa.me/971526966865?text=Hello%2C%20I%20am%20contacting%20from%20Remal%20Hotel%20Guest%20Hub." target="_blank" class="flex items-center space-x-2 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-3 rounded-full shadow-2xl transition transform hover:scale-105 border border-emerald-500 font-semibold text-xs">
       <span class="text-lg">💬</span><span id="whatsappText">WhatsApp Reception</span>
     </a>
-  </div>
-
-  <div id="authModal" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
-    <div class="bg-white w-full max-w-sm rounded-3xl p-6 shadow-2xl space-y-5 border border-stone-100">
-      <div class="text-center space-y-1">
-        <h3 class="text-lg font-serif-luxury font-bold text-stone-900">Admin Authentication</h3>
-        <p class="text-xs text-stone-500">Enter staff credentials to manage Guest Hub</p>
-      </div>
-      <form id="loginForm" onsubmit="loginAdmin(event)" class="space-y-4">
-        <div>
-          <label class="block text-[11px] font-bold text-stone-600 uppercase mb-1">Email Address</label>
-          <input type="email" id="loginEmail" placeholder="admin@remalhotel.com" class="w-full border border-stone-200 rounded-xl p-3 text-xs bg-stone-50 outline-none" required>
-        </div>
-        <div>
-          <label class="block text-[11px] font-bold text-stone-600 uppercase mb-1">Password</label>
-          <input type="password" id="loginPassword" placeholder="••••••••" class="w-full border border-stone-200 rounded-xl p-3 text-xs bg-stone-50 outline-none" required>
-        </div>
-        <p id="authErrorMsg" class="text-rose-600 text-[11px] font-semibold text-center hidden"></p>
-        <button type="submit" id="btnLoginSubmit" class="w-full bg-stone-900 hover:bg-stone-800 text-white font-bold py-3 rounded-xl text-xs transition shadow-md">🔐 Unlock Staff Panel</button>
-      </form>
-      <button onclick="closeAuthModal()" class="w-full text-stone-400 hover:text-stone-600 text-xs text-center font-medium">Cancel and Return</button>
-    </div>
   </div>
 
   <div id="adminView" class="hidden max-w-7xl mx-auto px-6 py-8 space-y-8">
